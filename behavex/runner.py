@@ -816,6 +816,8 @@ def remove_temporary_files(parallel_processes, json_reports):
     path_info = os.path.join(
         os.path.join(get_env('OUTPUT'), global_vars.report_filenames['report_json'])
     )
+    output_prefix = f"{get_env('OUTPUT_PREFIX')}-" if get_env('OUTPUT_PREFIX') else ""
+
     if os.path.exists(path_info):
         with open(path_info, 'r') as json_file:
             results_json = json.load(json_file)
@@ -823,14 +825,14 @@ def remove_temporary_files(parallel_processes, json_reports):
                 return
 
     for i in range(parallel_processes):
-        result_temp = os.path.join(gettempdir(), 'result{}.tmp'.format(i + 1))
+        result_temp = os.path.join(gettempdir(), '{}result{}.tmp'.format(output_prefix, i + 1))
         if os.path.exists(result_temp):
             try:
                 os.remove(result_temp)
             except Exception as remove_ex:
                 print(remove_ex)
 
-        path_stdout = os.path.join(gettempdir(), 'stdout{}.txt'.format(i + 1))
+        path_stdout = os.path.join(gettempdir(), '{}stdout{}.txt'.format(output_prefix, i + 1))
         if os.path.exists(path_stdout):
             try:
                 os.chmod(path_stdout, 511)  # nosec
@@ -839,7 +841,7 @@ def remove_temporary_files(parallel_processes, json_reports):
                 print(remove_ex)
 
     name = multiprocessing.current_process().name.split('-')[-1]
-    stdout_file = os.path.join(gettempdir(), 'std{}2.txt'.format(name))
+    stdout_file = os.path.join(gettempdir(), '{}std{}2.txt'.format(output_prefix, name))
     logger = logging.getLogger()
     logger.propagate = False
     for handler in logging.root.handlers:
@@ -1039,8 +1041,9 @@ def _set_behave_arguments(features_path, multiprocess, execution_id=None, featur
         arguments.append('--no-summary')
         worker_id = multiprocessing.current_process().name.split('-')[-1]
 
+        output_prefix = f"{config.get_env('OUTPUT_PREFIX')}-" if config.get_env('OUTPUT_PREFIX') else ""
         arguments.append('--outfile')
-        arguments.append(os.path.join(gettempdir(), 'stdout{}.txt'.format(worker_id)))
+        arguments.append(os.path.join(gettempdir(), '{}stdout{}.txt'.format(output_prefix, worker_id)))
 
         arguments.append('-D')
         arguments.append(f'worker_id={worker_id}')
@@ -1176,7 +1179,8 @@ def dump_json_results():
         )
     else:
         process_name = multiprocessing.current_process().name.split('-')[-1]
-        path_info = os.path.join(gettempdir(), 'result{}.tmp'.format(process_name))
+        output_prefix = f"{get_env('OUTPUT_PREFIX')}-" if get_env('OUTPUT_PREFIX') else ""
+        path_info = os.path.join(gettempdir(), '{}result{}.tmp'.format(output_prefix, process_name))
 
     def _load_json():
         """this function load from file"""
